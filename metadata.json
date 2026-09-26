@@ -1,0 +1,8 @@
+{
+  "name": "Valle Pro - Tecnología Física-Digital & NFC en Aconcagua",
+  "description": "Agencia tecnológica de Los Andes y San Felipe especialista en soportes NFC inteligentes, cartas digitales interactivas, blindaje de reseñas Google Maps y analíticas en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
