@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #08080a;
+    color: #f3f4f6;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 158, 11, 0.08), transparent 70%),
+      radial-gradient(circle at 100% 30%, rgba(16, 185, 129, 0.04), transparent 50%),
+      radial-gradient(circle at 0% 70%, rgba(6, 182, 212, 0.04), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.03em;
+  }
+
+  code, pre, .font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* Luxury Hardware & Frosted Glass utilities */
+.glass-obsidian {
+  background: rgba(14, 15, 20, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  box-shadow: 
+    0 20px 40px -15px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(18, 19, 26, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 
+    0 16px 32px -8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card-hover:hover {
+  background: rgba(22, 24, 34, 0.75);
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 
+    0 24px 48px -12px rgba(245, 158, 11, 0.15),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.glass-amber {
+  border-color: rgba(245, 158, 11, 0.28);
+  box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.15);
+}
+
+.glass-emerald {
+  border-color: rgba(16, 185, 129, 0.28);
+  box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.15);
+}
+
+/* Isometric 3D Hardware Canvas styling */
+.perspective-hardware {
+  perspective: 1200px;
+  perspective-origin: 50% 45%;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Pulsing circuit lines */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.35; filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.4)); }
+  50% { opacity: 0.95; filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9)); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #08080a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #232530;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b44;
+}
