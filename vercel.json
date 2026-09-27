@@ -1,36 +1,44 @@
 {
-  "rewrites": [
+  "redirects": [
     {
-      "source": "/la-montana/:path*",
-      "destination": "https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar&table=:path*"
+      "source": "/la-montana/:mesa",
+      "destination": "https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar&table=:mesa",
+      "permanent": false
     },
     {
       "source": "/la-montana",
-      "destination": "https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar"
+      "destination": "https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar&table=mesa-1",
+      "permanent": false
     },
     {
-      "source": "/barberia-aconcagua/:path*",
-      "destination": "https://valle-pro-test.vercel.app/?rest=barberia-aconcagua&table=:path*"
+      "source": "/barberia-aconcagua/:mesa",
+      "destination": "https://valle-pro-test.vercel.app/?rest=barberia-aconcagua&table=:mesa",
+      "permanent": false
     },
     {
       "source": "/barberia-aconcagua",
-      "destination": "https://valle-pro-test.vercel.app/?rest=barberia-aconcagua"
+      "destination": "https://valle-pro-test.vercel.app/?rest=barberia-aconcagua&table=estacion-matias",
+      "permanent": false
     },
     {
-      "source": "/lukoton-los-andes/:path*",
-      "destination": "https://valle-pro-test.vercel.app/?rest=lukoton-los-andes&table=:path*"
+      "source": "/lukoton-los-andes/:mesa",
+      "destination": "https://valle-pro-test.vercel.app/?rest=lukoton-los-andes&table=:mesa",
+      "permanent": false
     },
     {
       "source": "/lukoton-los-andes",
-      "destination": "https://valle-pro-test.vercel.app/?rest=lukoton-los-andes"
+      "destination": "https://valle-pro-test.vercel.app/?rest=lukoton-los-andes&table=mesa-1",
+      "permanent": false
     },
     {
       "source": "/:slug/:mesa",
-      "destination": "https://valle-pro-test.vercel.app/?rest=:slug&table=:mesa"
+      "destination": "https://valle-pro-test.vercel.app/?rest=:slug&table=:mesa",
+      "permanent": false
     },
     {
       "source": "/:slug",
-      "destination": "https://valle-pro-test.vercel.app/?rest=:slug"
+      "destination": "https://valle-pro-test.vercel.app/?rest=:slug",
+      "permanent": false
     }
   ]
 }
