@@ -21,9 +21,10 @@ import { ValleProLogo } from './ValleProLogo';
 
 interface FooterProps {
   onOpenCotizador?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenCotizador, onOpenAdmin }) => {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminPin, setAdminPin] = useState('');
   const [adminLogged, setAdminLogged] = useState(false);
@@ -31,8 +32,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
   // Hidden 3-Tap Security Mechanism
-  const [tapCount, setTapCount] = useState(0);
   const [isPulsing, setIsPulsing] = useState(false);
+  const tapCountRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const whatsappNumber = '56991825700';
@@ -42,22 +43,21 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
     setIsPulsing(true);
     setTimeout(() => setIsPulsing(false), 240);
 
-    setTapCount((prev) => {
-      const next = prev + 1;
-      if (next === 1) {
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-          setTapCount(0);
-        }, 1500);
-      } else if (next >= 3) {
-        if (timerRef.current) clearTimeout(timerRef.current);
-        setShowAdminModal(true);
-        setPinError('');
-        setAdminPin('');
-        return 0;
+    tapCountRef.current += 1;
+    if (tapCountRef.current === 1) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        tapCountRef.current = 0;
+      }, 1500);
+    } else if (tapCountRef.current >= 3) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      tapCountRef.current = 0;
+      if (onOpenAdmin) {
+        onOpenAdmin();
+      } else {
+        window.dispatchEvent(new CustomEvent('open-admin'));
       }
-      return next;
-    });
+    }
   };
 
   const handleAdminLogin = (e?: React.FormEvent) => {
@@ -171,7 +171,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
             <ul className="space-y-2 text-xs">
               <li>
                 <a
-                  href="https://vallepro.cl/la-montana"
+                  href="https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar&table=mesa-1"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-amber-400 transition flex items-center gap-1.5"
@@ -182,7 +182,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
               </li>
               <li>
                 <a
-                  href="https://vallepro.cl/barberia-aconcagua"
+                  href="https://valle-pro-test.vercel.app/?rest=barberia-aconcagua&table=estacion-matias"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-amber-400 transition flex items-center gap-1.5"
@@ -193,7 +193,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
               </li>
               <li>
                 <a
-                  href="https://vallepro.cl/lokuton"
+                  href="https://valle-pro-test.vercel.app/?rest=lukoton-los-andes&table=mesa-1"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-amber-400 transition flex items-center gap-1.5"

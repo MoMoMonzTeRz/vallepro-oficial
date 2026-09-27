@@ -6,11 +6,43 @@
 export const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbydFn42S1bb1D9khweQ-Oj9_01m9yJwP3sE0oQ7JMab0v2HxBT6o-vM0tU6pHeeo9Ng1g/exec';
 
+export type NetworkMode = 'demo' | 'produccion';
+
+export function getNetworkMode(): NetworkMode {
+  if (typeof window === 'undefined') return 'demo';
+  const saved = localStorage.getItem('vallepro_network_mode');
+  return saved === 'produccion' ? 'produccion' : 'demo';
+}
+
+export function setNetworkMode(mode: NetworkMode) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('vallepro_network_mode', mode);
+    window.dispatchEvent(new CustomEvent('network-mode-change', { detail: mode }));
+  }
+}
+
+export function isLocalDemo(slug: string): boolean {
+  const s = (slug || '').toLowerCase().trim();
+  const demoSlugs = [
+    'la-montana',
+    'la-montana-coffeebar',
+    'lukoton-los-andes',
+    'lukoton',
+    'barberia-aconcagua',
+    'barberia',
+  ];
+  if (demoSlugs.includes(s)) {
+    return true;
+  }
+  return getNetworkMode() === 'demo';
+}
+
 export interface EventoToqueNFC {
   action: 'registrar_evento';
   slug: string;
   table: string;
   tipo: 'toque_nfc';
+  isDemo?: boolean;
 }
 
 export interface QuejaPrivada {
@@ -20,6 +52,7 @@ export interface QuejaPrivada {
   stars: number;
   motivo: string;
   comentario: string;
+  isDemo?: boolean;
 }
 
 export interface MetricasCentrales {
@@ -120,12 +153,14 @@ function notifyListeners(metrics: MetricasCentrales) {
 /**
  * 1. Registra un toque NFC en la API central de Google Apps Script
  */
-export async function registrarToqueNFC(slug: string, table: string): Promise<boolean> {
+export async function registrarToqueNFC(slug: string, table: string, isDemoOverride?: boolean): Promise<boolean> {
+  const isDemo = isDemoOverride !== undefined ? isDemoOverride : isLocalDemo(slug);
   const payload: EventoToqueNFC = {
     action: 'registrar_evento',
     slug: slug || 'general',
     table: table || 'mesa-principal',
     tipo: 'toque_nfc',
+    isDemo,
   };
 
   // Optimistically increment local live count
@@ -179,7 +214,9 @@ export async function registrarQuejaPrivada(data: {
   stars: number;
   motivo: string;
   comentario: string;
+  isDemo?: boolean;
 }): Promise<boolean> {
+  const isDemo = data.isDemo !== undefined ? data.isDemo : isLocalDemo(data.slug);
   const payload: QuejaPrivada = {
     action: 'queja_privada',
     slug: data.slug || 'general',
@@ -187,6 +224,7 @@ export async function registrarQuejaPrivada(data: {
     stars: data.stars,
     motivo: data.motivo || 'Atención en general',
     comentario: data.comentario || 'Sin comentarios adicionales',
+    isDemo,
   };
 
   // Optimistically increment quejasEvitadas
@@ -389,3 +427,132 @@ export async function obtenerMetricasAcumuladas(force = false): Promise<Metricas
     return cachedMetrics;
   }
 }
+
+/**
+ * 6. Reiniciar todas las métricas a cero (Protegido con clave valle2026)
+ */
+export async function resetMetricas(clave: string = 'valle2026'): Promise<{ ok: boolean; message: string }> {
+  cachedMetrics = {
+    toquesTotales: 0,
+    quejasEvitadas: 0,
+    promedioRed: 5.0,
+    standsActivos: 0,
+    isLive: true,
+    timestamp: new Date().toISOString(),
+  };
+  notifyListeners(cachedMetrics);
+
+  try {
+    const res = await fetch('/api/telemetry/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clave }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return { ok: true, message: data.message || 'Red reiniciada a cero. Telemetría lista para clientes reales.' };
+    }
+  } catch (err) {
+    console.warn('Reset via proxy error:', err);
+  }
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'reset_metricas', clave }),
+    });
+    return { ok: true, message: 'Red reiniciada a cero. Telemetría lista para clientes reales.' };
+  } catch {
+    return { ok: true, message: 'Red reiniciada a cero localmente.' };
+  }
+}
+
+export interface LocalDataDynamic {
+  nombreLocal: string;
+  rubro?: string;
+  eslogan?: string;
+  direccion?: string;
+  comuna?: string;
+  googleMapsUrl?: string;
+  horarios?: string;
+  whatsapp?: string;
+  instagram?: string;
+  wifiSsid?: string;
+  wifiPassword?: string;
+  itemsMenu?: Array<{
+    nombre: string;
+    descripcion: string;
+    precio: string | number;
+    categoria?: string;
+    badge?: string;
+  }>;
+}
+
+/**
+ * 7. Consulta dinámica de local registrado
+ */
+export async function obtenerDatosLocal(slug: string): Promise<LocalDataDynamic | null> {
+  const cleanSlug = (slug || '').trim().toLowerCase();
+  if (!cleanSlug) return null;
+
+  // 1. Try local API proxy
+  try {
+    const res = await fetch(`/api/telemetry/local/${encodeURIComponent(cleanSlug)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && (data.nombreLocal || data.nombre || data.local)) {
+        return {
+          nombreLocal: data.nombreLocal || data.nombre || data.local,
+          rubro: data.rubro || 'Local Comercial',
+          eslogan: data.eslogan || '',
+          direccion: data.direccion || 'Valle del Aconcagua',
+          comuna: data.comuna || 'Los Andes / San Felipe',
+          googleMapsUrl: data.googleMapsUrl || 'https://maps.google.com',
+          horarios: data.horarios || 'Atención continuada',
+          whatsapp: data.whatsapp || '56991825700',
+          instagram: data.instagram || '',
+          wifiSsid: data.wifiSsid || 'VallePro-Guest',
+          wifiPassword: data.wifiPassword || 'Aconcagua2026',
+          itemsMenu: Array.isArray(data.itemsMenu) ? data.itemsMenu : [],
+        };
+      }
+    }
+  } catch {}
+
+  // 2. Direct GAS fetch
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=obtener_local&slug=${encodeURIComponent(cleanSlug)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && (data.nombreLocal || data.nombre || data.local)) {
+        return {
+          nombreLocal: data.nombreLocal || data.nombre || data.local,
+          rubro: data.rubro || 'Local Comercial',
+          eslogan: data.eslogan || '',
+          direccion: data.direccion || 'Valle del Aconcagua',
+          comuna: data.comuna || 'Los Andes / San Felipe',
+          googleMapsUrl: data.googleMapsUrl || 'https://maps.google.com',
+          horarios: data.horarios || 'Atención continuada',
+          whatsapp: data.whatsapp || '56991825700',
+          instagram: data.instagram || '',
+          wifiSsid: data.wifiSsid || 'VallePro-Guest',
+          wifiPassword: data.wifiPassword || 'Aconcagua2026',
+          itemsMenu: Array.isArray(data.itemsMenu) ? data.itemsMenu : [],
+        };
+      }
+    }
+  } catch {}
+
+  // 3. Local storage fallback (for newly onboarded client)
+  try {
+    const localSaved = localStorage.getItem(`vallepro_local_${cleanSlug}`);
+    if (localSaved) {
+      const parsed = JSON.parse(localSaved);
+      return parsed;
+    }
+  } catch {}
+
+  return null;
+}
+

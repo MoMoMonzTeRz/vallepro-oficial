@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   ShoppingBag,
@@ -17,7 +17,7 @@ import {
   Utensils,
   Share2,
 } from 'lucide-react';
-import { registrarToqueNFC, registrarQuejaPrivada } from '../services/telemetry';
+import { registrarToqueNFC, registrarQuejaPrivada, getNetworkMode } from '../services/telemetry';
 
 interface FoodItem {
   id: string;
@@ -28,10 +28,20 @@ interface FoodItem {
   popular?: boolean;
 }
 
-export const LukotonDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: boolean }> = ({
+export const LukotonDemo: React.FC<{
+  onBackToHome?: () => void;
+  isEmbedded?: boolean;
+  table?: string;
+}> = ({
   onBackToHome,
   isEmbedded = false,
+  table = 'Mesa 1',
 }) => {
+  const isEmbedQuery = typeof window !== 'undefined' && window.location.search.includes('embed=true');
+  const isActuallyEmbedded = isEmbedded || isEmbedQuery;
+  const [networkMode, setNetworkMode] = useState<'demo' | 'produccion'>(getNetworkMode());
+  const isDemo = networkMode === 'demo';
+
   const [orderType, setOrderType] = useState<'delivery' | 'local'>('delivery');
   const [cart, setCart] = useState<{ [id: string]: number }>({ 'c1': 2, 'm1': 1 });
   const [deliveryZone, setDeliveryZone] = useState('Los Andes Centro');
@@ -44,19 +54,25 @@ export const LukotonDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: boo
   const [selectedStars, setSelectedStars] = useState<number | null>(null);
   const [complaintSent, setComplaintSent] = useState(false);
 
-  React.useEffect(() => {
-    registrarToqueNFC('lukoton-los-andes', 'mesa-1');
+  useEffect(() => {
+    const handleMode = () => setNetworkMode(getNetworkMode());
+    window.addEventListener('network-mode-change', handleMode);
+    return () => window.removeEventListener('network-mode-change', handleMode);
   }, []);
+
+  React.useEffect(() => {
+    registrarToqueNFC('lukoton-los-andes', table, isDemo);
+  }, [table, isDemo]);
 
   const handleStarClick = (star: number) => {
     setSelectedStars(star);
     if (star <= 3) {
       registrarQuejaPrivada({
         slug: 'lukoton-los-andes',
-        table: 'mesa-1',
+        table: table,
         stars: star,
         motivo: 'Calidad o demora de comida',
-        comentario: 'Queja retenida en mesa en Lukotón',
+        comentario: `Queja retenida en ${table} en Lukotón`,
       });
       setComplaintSent(true);
     }
@@ -205,18 +221,27 @@ export const LukotonDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: boo
         ? `🛵 *PEDIDO DELIVERY LUKOTÓN LOS ANDES*\n👤 *Cliente:* ${customerName || 'Cliente Valle'}\n📍 *Dirección:* ${customerAddress || 'No especificada'} (${deliveryZone})\n🚚 *Costo Envío:* $${deliveryFee.toLocaleString('es-CL')} CLP`
         : `🏪 *PEDIDO RETIRO EN LOCAL LUKOTÓN*\n👤 *Cliente:* ${customerName || 'Cliente Local'}\n📍 *Retiro en:* Esmeralda 842, Los Andes (Mesa / Mostrador NFC)`;
 
-    const msg = `${orderHeader}\n\n*Detalle de Comanda:*\n${itemsList}\n${notes ? `\n📝 *Notas:* ${notes}\n` : ''}\n*TOTAL A PAGAR:* $${grandTotal.toLocaleString('es-CL')} CLP\n\n_Generado automáticamente vía Valle Pro ⚡_`;
+    const demoPrefix = isDemo ? '[DEMO PRUEBA] ' : '';
+    const msg = `${demoPrefix}${orderHeader}\n\n*Detalle de Comanda:*\n${itemsList}\n${notes ? `\n📝 *Notas:* ${notes}\n` : ''}\n*TOTAL A PAGAR:* $${grandTotal.toLocaleString('es-CL')} CLP\n\n_Generado automáticamente vía Valle Pro ⚡_`;
 
     window.open(`https://wa.me/56991825700?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   return (
-    <div className={`min-h-screen bg-[#0c0d12] text-slate-100 font-sans pb-28 ${isEmbedded ? 'text-xs' : ''}`}>
+    <div className={`min-h-screen bg-[#0c0d12] text-slate-100 font-sans pb-28 ${isActuallyEmbedded ? 'text-xs' : ''}`}>
+      {/* SUTILE DEMO BADGE */}
+      {isDemo && (
+        <div className="w-full bg-orange-500/10 border-b border-orange-500/25 py-1 px-4 text-center text-[10px] text-orange-300 font-medium flex items-center justify-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+          <span>Entorno de Demostración • Datos Simulados</span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[#14121a]/95 backdrop-blur-md border-b border-orange-500/20 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {onBackToHome && (
+            {onBackToHome && !isActuallyEmbedded && (
               <button
                 onClick={onBackToHome}
                 className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition"
@@ -337,7 +362,7 @@ export const LukotonDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: boo
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-orange-400 animate-ping" />
               <span>
-                Punto NFC activo: <strong>Mesa 3 (Lukotón Esmeralda)</strong>
+                Punto NFC activo: <strong>{table} (Lukotón Esmeralda)</strong>
               </span>
             </div>
             <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">

@@ -394,6 +394,59 @@ app.post('/api/telemetry/stats', handleStatsPost);
 app.get('/api/telemetry/metrics', handleStatsGet);
 app.post('/api/telemetry/metrics', handleStatsPost);
 
+// Reset metrics endpoint protected with secret key
+app.post('/api/telemetry/reset', async (req, res) => {
+  const { clave } = req.body;
+  if (clave !== 'valle2026') {
+    return res.status(401).json({ ok: false, error: 'Clave no autorizada' });
+  }
+
+  serverMetrics = {
+    toquesTotales: 0,
+    quejasEvitadas: 0,
+    promedioRed: 5.0,
+    standsActivos: 0,
+    lastUpdated: new Date().toISOString(),
+    isLive: true,
+  };
+
+  try {
+    const gasRes = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'reset_metricas', clave: 'valle2026' }),
+    });
+    const text = await gasRes.text();
+    try {
+      return res.json({ ok: true, message: 'Red reiniciada a cero. Telemetría lista para clientes reales.', gas: JSON.parse(text) });
+    } catch {
+      return res.json({ ok: true, message: 'Red reiniciada a cero. Telemetría lista para clientes reales.' });
+    }
+  } catch (err: any) {
+    console.warn('Could not forward reset to GAS:', err?.message);
+    return res.json({ ok: true, message: 'Red reiniciada a cero localmente.' });
+  }
+});
+
+// Dynamic local resolution from GAS or fallback
+app.get('/api/telemetry/local/:slug', async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const gasRes = await fetch(`${APPS_SCRIPT_URL}?action=obtener_local&slug=${encodeURIComponent(slug)}`);
+    if (gasRes.ok) {
+      const text = await gasRes.text();
+      try {
+        return res.json(JSON.parse(text));
+      } catch {
+        return res.json({ ok: false, error: 'Respuesta inválida de Google Apps Script' });
+      }
+    }
+  } catch (err: any) {
+    console.warn('Error fetching dynamic local from Apps Script:', err?.message);
+  }
+  return res.status(404).json({ ok: false, error: 'Local no encontrado' });
+});
+
 // Configure Vite or serve static files
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';

@@ -24,7 +24,7 @@ import {
   PhoneCall,
   CheckCircle,
 } from 'lucide-react';
-import { registrarToqueNFC, registrarQuejaPrivada } from '../services/telemetry';
+import { registrarToqueNFC, registrarQuejaPrivada, getNetworkMode } from '../services/telemetry';
 
 interface MenuItem {
   id: string;
@@ -36,10 +36,20 @@ interface MenuItem {
   image?: string;
 }
 
-export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: boolean }> = ({
+export const LaMontanaDemo: React.FC<{
+  onBackToHome?: () => void;
+  isEmbedded?: boolean;
+  table?: string;
+}> = ({
   onBackToHome,
   isEmbedded = false,
+  table = 'Mesa 1',
 }) => {
+  const isEmbedQuery = typeof window !== 'undefined' && window.location.search.includes('embed=true');
+  const isActuallyEmbedded = isEmbedded || isEmbedQuery;
+  const [networkMode, setNetworkMode] = useState<'demo' | 'produccion'>(getNetworkMode());
+  const isDemo = networkMode === 'demo';
+
   const [activeCategory, setActiveCategory] = useState<'cafeteria' | 'tostones' | 'fondos' | 'cocteleria'>('cafeteria');
   const [cart, setCart] = useState<{ [id: string]: number }>({ 'c1': 1, 't1': 1 });
   const [wifiCopied, setWifiCopied] = useState(false);
@@ -57,14 +67,20 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
   const [timeLeft, setTimeLeft] = useState(872); // seconds
 
   useEffect(() => {
-    // 1. Registra toque NFC en API Central
-    registrarToqueNFC('la-montana-coffeebar', 'mesa-1');
+    const handleMode = () => setNetworkMode(getNetworkMode());
+    window.addEventListener('network-mode-change', handleMode);
+    return () => window.removeEventListener('network-mode-change', handleMode);
+  }, []);
+
+  useEffect(() => {
+    // 1. Registra toque NFC en API Central con flag según modo
+    registrarToqueNFC('la-montana-coffeebar', table, isDemo);
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 1800));
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [table, isDemo]);
 
   const formatTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -202,7 +218,8 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
       .filter(Boolean)
       .join('\n');
 
-    const msg = `🏔️ *NUEVA COMANDA - LA MONTAÑA RESTOBAR / COFFEE BAR*\n📍 *Mesa 1 (Salón Principal)*\n📍 *Ubicación:* Esmeralda 537, Los Andes\n\n*Detalle del pedido:*\n${itemsList}\n\n*Total a Pagar:* $${subtotal.toLocaleString('es-CL')} CLP\n\n_Pedido emitido vía Soporte NFC Valle Pro ⚡_`;
+    const demoPrefix = isDemo ? '[DEMO PRUEBA] ' : '';
+    const msg = `${demoPrefix}🏔️ *NUEVA COMANDA - LA MONTAÑA RESTOBAR / COFFEE BAR*\n📍 *${table} (Salón Principal)*\n📍 *Ubicación:* Esmeralda 537, Los Andes\n\n*Detalle del pedido:*\n${itemsList}\n\n*Total a Pagar:* $${subtotal.toLocaleString('es-CL')} CLP\n\n_Pedido emitido vía Soporte NFC Valle Pro ⚡_`;
 
     const url = `https://wa.me/56991825700?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
@@ -214,12 +231,20 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
   };
 
   return (
-    <div className={`min-h-screen bg-[#0c0d12] text-slate-100 font-sans pb-28 ${isEmbedded ? 'text-xs' : ''}`}>
+    <div className={`min-h-screen bg-[#0c0d12] text-slate-100 font-sans pb-28 ${isActuallyEmbedded ? 'text-xs' : ''}`}>
+      {/* SUTILE DEMO BADGE */}
+      {isDemo && (
+        <div className="w-full bg-amber-500/10 border-b border-amber-500/25 py-1 px-4 text-center text-[10px] text-amber-300 font-medium flex items-center justify-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span>Entorno de Demostración • Datos Simulados</span>
+        </div>
+      )}
+
       {/* Top Header Bar with NFC Tag verification */}
       <header className="sticky top-0 z-30 bg-[#12141c]/95 backdrop-blur-md border-b border-slate-800 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {onBackToHome && (
+            {onBackToHome && !isActuallyEmbedded && (
               <button
                 onClick={onBackToHome}
                 className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition"
@@ -247,7 +272,7 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
           <div className="text-right">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              Mesa 1 (Salón)
+              {table} (Salón)
             </div>
           </div>
         </div>
@@ -367,7 +392,7 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
             <div className="flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-amber-400" />
               <span>
-                Solicitaste la cuenta para <strong>Mesa 1</strong> (POS Tarjeta). El personal se acerca a tu mesa.
+                Solicitaste la cuenta para <strong>{table}</strong> (POS Tarjeta). El personal se acerca a tu mesa.
               </span>
             </div>
             <button
@@ -472,7 +497,7 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
               Tu opinión importa en La Montaña
             </span>
             <h4 className="mt-2 text-sm font-bold text-white">
-              ¿Cómo va tu experiencia en Mesa 1?
+              ¿Cómo va tu experiencia en {table}?
             </h4>
             <p className="text-[11px] text-slate-400 mt-1">
               Califícanos con un toque antes de pedir la cuenta:
@@ -530,14 +555,14 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
                 />
                 <a
                   href={`https://wa.me/56991825700?text=${encodeURIComponent(
-                    `*RECLAMO / FEEDBACK PRIVADO MESA 1 - LA MONTAÑA*\nCalificación: ${selectedStars} estrellas.\nComentario: ${privateFeedback || 'Atención a mejorar'}`
+                    `*RECLAMO / FEEDBACK PRIVADO ${table.toUpperCase()} - LA MONTAÑA*\nCalificación: ${selectedStars} estrellas.\nComentario: ${privateFeedback || 'Atención a mejorar'}`
                   )}`}
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => {
                     registrarQuejaPrivada({
                       slug: 'la-montana-coffeebar',
-                      table: 'mesa-1',
+                      table: table,
                       stars: selectedStars || 3,
                       motivo: 'Demora o atención',
                       comentario: privateFeedback || 'Atención a mejorar',
@@ -625,7 +650,7 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
                   ${subtotal.toLocaleString('es-CL')} CLP
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400">Comanda directa a cocina para Mesa 1</p>
+              <p className="text-[10px] text-slate-400">Comanda directa a cocina para {table}</p>
             </div>
 
             <button
@@ -646,7 +671,7 @@ export const LaMontanaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: b
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-white text-base">Comanda Mesa 1</h3>
+                <h3 className="font-bold text-white text-base">Comanda {table}</h3>
               </div>
               <button
                 onClick={() => setShowOrderModal(false)}

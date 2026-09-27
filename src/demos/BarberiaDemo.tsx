@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Calendar,
@@ -15,7 +15,7 @@ import {
   Check,
   ShieldCheck,
 } from 'lucide-react';
-import { registrarToqueNFC, registrarQuejaPrivada } from '../services/telemetry';
+import { registrarToqueNFC, registrarQuejaPrivada, getNetworkMode } from '../services/telemetry';
 
 interface Barber {
   id: string;
@@ -34,10 +34,20 @@ interface Service {
   description: string;
 }
 
-export const BarberiaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: boolean }> = ({
+export const BarberiaDemo: React.FC<{
+  onBackToHome?: () => void;
+  isEmbedded?: boolean;
+  table?: string;
+}> = ({
   onBackToHome,
   isEmbedded = false,
+  table = 'Estación Matías',
 }) => {
+  const isEmbedQuery = typeof window !== 'undefined' && window.location.search.includes('embed=true');
+  const isActuallyEmbedded = isEmbedded || isEmbedQuery;
+  const [networkMode, setNetworkMode] = useState<'demo' | 'produccion'>(getNetworkMode());
+  const isDemo = networkMode === 'demo';
+
   const [selectedBarber, setSelectedBarber] = useState('b1');
   const [selectedService, setSelectedService] = useState('s1');
   const [selectedDate, setSelectedDate] = useState('Hoy, Viernes');
@@ -49,19 +59,25 @@ export const BarberiaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: bo
   const [complaintSent, setComplaintSent] = useState(false);
   const [wifiCopied, setWifiCopied] = useState(false);
 
-  React.useEffect(() => {
-    registrarToqueNFC('barberia-aconcagua', 'estacion-matias');
+  useEffect(() => {
+    const handleMode = () => setNetworkMode(getNetworkMode());
+    window.addEventListener('network-mode-change', handleMode);
+    return () => window.removeEventListener('network-mode-change', handleMode);
   }, []);
+
+  React.useEffect(() => {
+    registrarToqueNFC('barberia-aconcagua', table, isDemo);
+  }, [table, isDemo]);
 
   const handleStarClick = (star: number) => {
     setSelectedStars(star);
     if (star <= 3) {
       registrarQuejaPrivada({
         slug: 'barberia-aconcagua',
-        table: 'estacion-matias',
+        table: table,
         stars: star,
         motivo: 'Detalle en servicio de barbería',
-        comentario: 'Queja retenida en sillón de Barbería Aconcagua',
+        comentario: `Queja retenida en ${table} de Barbería Aconcagua`,
       });
       setComplaintSent(true);
     }
@@ -132,19 +148,28 @@ export const BarberiaDemo: React.FC<{ onBackToHome?: () => void; isEmbedded?: bo
   const currentService = services.find((s) => s.id === selectedService) || services[0];
 
   const handleConfirmBooking = () => {
-    const msg = `✂️ *NUEVA RESERVA - BARBERÍA ACONCAGUA*\n👤 *Cliente:* ${clientName || 'Cliente Salon'}\n📞 *Teléfono:* ${clientPhone || 'No indicado'}\n\n💈 *Barbero:* ${currentBarber.name}\n✂️ *Servicio:* ${currentService.name} ($${currentService.price.toLocaleString('es-CL')} CLP)\n📅 *Fecha:* ${selectedDate}\n⏰ *Hora:* ${selectedTime} hrs\n\n_Agendado vía soporte NFC Valle Pro ⚡_`;
+    const demoPrefix = isDemo ? '[DEMO PRUEBA] ' : '';
+    const msg = `${demoPrefix}✂️ *NUEVA RESERVA - BARBERÍA ACONCAGUA*\n👤 *Cliente:* ${clientName || 'Cliente Salon'}\n📞 *Teléfono:* ${clientPhone || 'No indicado'}\n\n💈 *Barbero:* ${currentBarber.name}\n✂️ *Servicio:* ${currentService.name} ($${currentService.price.toLocaleString('es-CL')} CLP)\n📅 *Fecha:* ${selectedDate}\n⏰ *Hora:* ${selectedTime} hrs\n\n_Agendado vía soporte NFC Valle Pro ⚡_`;
 
     window.open(`https://wa.me/56991825700?text=${encodeURIComponent(msg)}`, '_blank');
     setBookingConfirmed(true);
   };
 
   return (
-    <div className={`min-h-screen bg-[#0b0c10] text-slate-100 font-sans pb-28 ${isEmbedded ? 'text-xs' : ''}`}>
+    <div className={`min-h-screen bg-[#0b0c10] text-slate-100 font-sans pb-28 ${isActuallyEmbedded ? 'text-xs' : ''}`}>
+      {/* SUTILE DEMO BADGE */}
+      {isDemo && (
+        <div className="w-full bg-cyan-500/10 border-b border-cyan-500/25 py-1 px-4 text-center text-[10px] text-cyan-300 font-medium flex items-center justify-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span>Entorno de Demostración • Datos Simulados</span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[#12141a]/95 backdrop-blur-md border-b border-cyan-500/20 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {onBackToHome && (
+            {onBackToHome && !isActuallyEmbedded && (
               <button
                 onClick={onBackToHome}
                 className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition"

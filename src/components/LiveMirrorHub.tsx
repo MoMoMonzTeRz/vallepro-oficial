@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Smartphone,
   ExternalLink,
@@ -14,10 +14,10 @@ import {
 import { registrarToqueNFC } from '../services/telemetry';
 
 interface LiveMirrorHubProps {
-  onNavigate: (route: string) => void;
+  onNavigate?: (route: string) => void;
 }
 
-export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = ({ onNavigate }) => {
+export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = () => {
   const [activeVenue, setActiveVenue] = useState<'la-montana' | 'barberia' | 'lukoton'>('la-montana');
   const [iframeKey, setIframeKey] = useState<number>(0);
 
@@ -32,7 +32,7 @@ export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = ({ onNavigate }) => {
       hours: 'Lunes a Sábado: 12:00 a 23:30 hrs',
       rating: '4.9 ★ (420+)',
       icon: UtensilsCrossed,
-      url: 'https://vallepro.cl/la-montana',
+      url: 'https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar&table=mesa-1&embed=true',
       highlights: ['Flat White $3.400', 'Tostón Palta Reina $7.200', 'Hamburguesa Fogón $11.900'],
       color: 'border-amber-500/50 text-amber-400 bg-amber-500/10',
     },
@@ -46,7 +46,7 @@ export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = ({ onNavigate }) => {
       hours: 'Lunes a Sábado: 10:00 a 20:00 hrs',
       rating: '4.95 ★ (510+)',
       icon: Scissors,
-      url: 'https://vallepro.cl/barberia-aconcagua',
+      url: 'https://valle-pro-test.vercel.app/?rest=barberia-aconcagua&table=estacion-matias&embed=true',
       highlights: ['Degradado Clásico $12.000', 'Barba Ritual $9.000', 'Corte + Barba $18.000'],
       color: 'border-cyan-500/50 text-cyan-400 bg-cyan-500/10',
     },
@@ -60,13 +60,26 @@ export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = ({ onNavigate }) => {
       hours: 'Lunes a Domingo: 18:00 a 03:00 hrs',
       rating: '4.8 ★ (850+)',
       icon: Flame,
-      url: 'https://vallepro.cl/lokuton',
+      url: 'https://valle-pro-test.vercel.app/?rest=lukoton-los-andes&table=mesa-1&embed=true',
       highlights: ['Completo Italiano $3.600', 'As Luco Marraqueta $4.900', 'Mechada Chacarera $6.500'],
       color: 'border-orange-500/50 text-orange-400 bg-orange-500/10',
     },
   ];
 
   const currentVenue = venues.find((v) => v.id === activeVenue) || venues[0];
+
+  // Listen to external selection events (e.g. from DemosShowcase)
+  useEffect(() => {
+    const handleSelectMirror = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail && ['la-montana', 'barberia', 'lukoton'].includes(customEvent.detail)) {
+        setActiveVenue(customEvent.detail as 'la-montana' | 'barberia' | 'lukoton');
+        setIframeKey((k) => k + 1);
+      }
+    };
+    window.addEventListener('select-mirror-venue', handleSelectMirror);
+    return () => window.removeEventListener('select-mirror-venue', handleSelectMirror);
+  }, []);
 
   const handleSelectVenue = (id: 'la-montana' | 'barberia' | 'lukoton') => {
     setActiveVenue(id);
@@ -151,15 +164,13 @@ export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = ({ onNavigate }) => {
           
           {/* Action Bar Above Phone */}
           <div className="mb-6 flex flex-wrap items-center justify-center gap-3 w-full max-w-md">
-            <a
-              href={currentVenue.url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => window.open(currentVenue.url, '_blank')}
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 shadow-lg shadow-amber-500/25 transition active:scale-95"
             >
               <span>Abrir Landing en Pestaña Nueva</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-950" />
-            </a>
+            </button>
 
             <button
               onClick={handleRefresh}
@@ -173,7 +184,6 @@ export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = ({ onNavigate }) => {
 
           {/* iPhone 15 Chassis Mockup */}
           <div
-           
             className="relative w-full max-w-[390px] h-[780px] flex flex-col bg-[#07080c] border-[8px] border-slate-700/80 rounded-[52px] shadow-[0_30px_100px_rgba(0,0,0,0.95)] overflow-hidden ring-1 ring-white/10"
           >
             {/* Dynamic Island & Speaker Bar */}
@@ -192,14 +202,14 @@ export const LiveMirrorHub: React.FC<LiveMirrorHubProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* Embedded Live Venue Viewport */}
-            <div className="flex-1 w-full h-full bg-[#0c0d12] relative overflow-hidden flex flex-col">
+            {/* Embedded Live Venue Viewport: Adjusted Perfectly with rounded-[38px] */}
+            <div className="flex-1 w-full h-full bg-[#0c0d12] relative overflow-hidden flex flex-col p-1">
               <iframe
                 key={`${currentVenue.id}-${iframeKey}`}
                 src={currentVenue.url}
                 title={`Landing Real ${currentVenue.name}`}
-                className="w-full h-full border-0 overflow-y-auto"
-                allow="clipboard-write"
+                className="w-full h-full border-0 rounded-[38px] overflow-y-auto"
+                allow="clipboard-write; payment; geolocation"
                 loading="eager"
               />
             </div>

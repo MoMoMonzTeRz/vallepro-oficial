@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Menu, X, MessageCircle, Zap, Calculator } from 'lucide-react';
 import { ValleProLogo } from './ValleProLogo';
 
@@ -7,6 +7,7 @@ interface NavbarProps {
   currentRoute: string;
   onOpenOnboarding?: () => void;
   onOpenCotizador?: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,11 +15,44 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentRoute,
   onOpenOnboarding,
   onOpenCotizador,
+  onOpenAdmin,
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Triple-tap secret mechanism
+  const [isVibrating, setIsVibrating] = useState(false);
+  const tapCountRef = useRef(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   const whatsappNumber = '56991825700';
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    // Micro-vibration visual feedback
+    setIsVibrating(true);
+    setTimeout(() => setIsVibrating(false), 240);
+
+    tapCountRef.current += 1;
+    if (tapCountRef.current === 1) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        tapCountRef.current = 0;
+      }, 1500);
+    } else if (tapCountRef.current >= 3) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      tapCountRef.current = 0;
+      if (onOpenAdmin) {
+        onOpenAdmin();
+      } else {
+        window.dispatchEvent(new CustomEvent('open-admin'));
+      }
+    }
+
+    if (currentRoute !== '/') {
+      e.preventDefault();
+      onNavigateHome();
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -62,18 +96,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Brand Logo: VP Monogram + Golden Serif Valle Pro • reseñas del valle */}
-          <a
-            href="#hero"
-            onClick={(e) => {
-              if (currentRoute !== '/') {
-                e.preventDefault();
-                onNavigateHome();
-              }
-            }}
-            className="group cursor-pointer"
+          <div
+            onClick={handleLogoClick}
+            className={`group cursor-pointer inline-block transition-transform duration-200 select-none ${
+              isVibrating ? 'scale-95 brightness-125' : 'active:scale-95'
+            }`}
+            title="Valle Pro • Modo Valle Pro"
           >
             <ValleProLogo size="md" showSubtext={true} />
-          </a>
+          </div>
 
           {/* Desktop Navigation Links */}
           <div className="hidden lg:flex items-center gap-5 xl:gap-6 text-xs font-semibold text-slate-300">
