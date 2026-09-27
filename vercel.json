@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/:slug/:mesa",
+      "destination": "https://valle-pro-test.vercel.app/?rest=:slug&table=:mesa"
+    },
+    {
+      "source": "/:slug",
+      "destination": "https://valle-pro-test.vercel.app/?rest=:slug"
+    }
+  ]
+}
