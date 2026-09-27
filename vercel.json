@@ -1,6 +1,30 @@
 {
   "rewrites": [
     {
+      "source": "/la-montana/:path*",
+      "destination": "https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar&table=:path*"
+    },
+    {
+      "source": "/la-montana",
+      "destination": "https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar"
+    },
+    {
+      "source": "/barberia-aconcagua/:path*",
+      "destination": "https://valle-pro-test.vercel.app/?rest=barberia-aconcagua&table=:path*"
+    },
+    {
+      "source": "/barberia-aconcagua",
+      "destination": "https://valle-pro-test.vercel.app/?rest=barberia-aconcagua"
+    },
+    {
+      "source": "/lukoton-los-andes/:path*",
+      "destination": "https://valle-pro-test.vercel.app/?rest=lukoton-los-andes&table=:path*"
+    },
+    {
+      "source": "/lukoton-los-andes",
+      "destination": "https://valle-pro-test.vercel.app/?rest=lukoton-los-andes"
+    },
+    {
       "source": "/:slug/:mesa",
       "destination": "https://valle-pro-test.vercel.app/?rest=:slug&table=:mesa"
     },
