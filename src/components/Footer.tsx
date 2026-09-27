@@ -171,7 +171,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
             <ul className="space-y-2 text-xs">
               <li>
                 <a
-                  href="https://valle-pro-test.vercel.app/?rest=la-montana-coffeebar&table=mesa-1"
+                  href="https://vallepro.cl/la-montana"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-amber-400 transition flex items-center gap-1.5"
@@ -182,7 +182,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
               </li>
               <li>
                 <a
-                  href="https://valle-pro-test.vercel.app/?rest=barberia-aconcagua&table=estacion-matias"
+                  href="https://vallepro.cl/barberia-aconcagua"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-amber-400 transition flex items-center gap-1.5"
@@ -193,7 +193,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCotizador }) => {
               </li>
               <li>
                 <a
-                  href="https://valle-pro-test.vercel.app/?rest=lukoton-los-andes&table=mesa-1"
+                  href="https://vallepro.cl/lokuton"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-amber-400 transition flex items-center gap-1.5"
